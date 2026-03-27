@@ -46,6 +46,7 @@ body {
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: hidden;
 }
 
 /* Right column — branding + controls */
@@ -57,6 +58,8 @@ body {
   justify-content: center;
   gap: 32px;
   padding: 40px 40px 40px 0;
+  position: relative;
+  z-index: 10;
 }
 
 /* =============================================================
@@ -407,11 +410,11 @@ body {
 
 /* "This is SalesScout" in-demo moment — positioned right of phone */
 .brand-moment {
-  position: fixed;
-  bottom: 40px;
-  left: calc((100vw - 320px) / 2);
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
   transform: translateX(-50%);
-  z-index: 2;
+  z-index: 5;
   text-align: center;
   pointer-events: none;
   opacity: 0;
@@ -550,9 +553,9 @@ body {
    DATA STREAMS — full canvas particle field + source badges
    ============================================================= */
 #dataCanvas {
-  position: fixed;
+  position: absolute;
   top: 0; left: 0;
-  width: 100vw; height: 100vh;
+  width: 100%; height: 100%;
   pointer-events: none;
   z-index: 3;
   opacity: 0;
@@ -562,7 +565,7 @@ body {
 
 /* Floating source badges */
 .source-badge {
-  position: fixed;
+  position: absolute;
   padding: 8px 16px;
   background: rgba(26, 111, 255, 0.08);
   border: 1px solid rgba(26, 111, 255, 0.2);
@@ -689,7 +692,7 @@ body {
     min-height: 100dvh;
     height: auto;
     overflow-y: auto;
-    padding: 16px 20px;
+    padding: 16px 20px 60px;
     gap: 12px;
   }
   .col-right {
@@ -707,7 +710,7 @@ body {
     width: 100%;
     display: flex;
     justify-content: center;
-    overflow: hidden;
+    overflow: visible;
   }
   .brand-wordmark { font-size: 22px; }
   .brand-tagline { font-size: 12px; }
@@ -733,6 +736,9 @@ body {
     text-align: center;
     margin-top: 8px;
   }
+  /* Hide mute button on mobile */
+  #muteBtn { display: none; }
+  /* Closing card */
   #closingOverlay { padding: 0 28px; }
   .cl-line1, .cl-line2 {
     font-size: 36px; letter-spacing: -0.5px;
@@ -741,18 +747,37 @@ body {
   .cl-sub { font-size: 15px; padding: 0 8px; }
   .cl-logo { font-size: 20px; }
   .cl-cta, .cl-replay { width: 100%; max-width: 320px; font-size: 15px; }
+  /* Phone scaling with more bottom room */
   .phone-wrap {
-    transform: scale(0.72);
+    transform: scale(0.78);
     transform-origin: center top;
     max-width: 100vw;
-    /* Collapse the dead space below from scaling: 844 * (1 - 0.72) = ~236px */
-    margin-bottom: -236px;
+    margin-bottom: -185px;
   }
+  /* Brand moment — inside phone area on mobile */
+  .brand-moment {
+    bottom: auto;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+  }
+  .brand-moment .bm-name { font-size: 36px; }
+  .brand-moment .bm-this { font-size: 14px; }
+  .brand-moment .bm-glow { width: 250px; height: 250px; }
+  /* Source badges — smaller, tighter on mobile */
+  .source-badge { font-size: 10px; padding: 5px 10px; }
+  /* Data canvas — hide on mobile, too heavy */
+  #dataCanvas { display: none; }
+  /* Before/after + pipeline tease — full width in chat */
+  .contrast-card { font-size: 12px; }
+  .contrast-line.highlight { font-size: 13px; }
+  .pipeline-tease { font-size: 11px; max-width: 95%; }
 }
 @media (max-width: 390px) {
   .phone-wrap {
-    transform: scale(0.62);
-    margin-bottom: -320px;
+    transform: scale(0.68);
+    margin-bottom: -270px;
   }
 }
 </style>
@@ -762,18 +787,17 @@ body {
   <div class="intro-text">Sales<span class="blue">Scout</span></div>
   <div class="intro-sub">Watch what happens next.</div>
 </div>
-<div class="brand-moment" id="brandMoment">
-  <div class="bm-glow"></div>
-  <div class="bm-this">This is</div>
-  <div class="bm-name">Sales<span class="bm-scout">Scout</span></div>
-  <div class="bm-line"></div>
-</div>
-<canvas id="dataCanvas" width="1920" height="1080"></canvas>
-<div id="badgeContainer" style="position:fixed;inset:0;pointer-events:none;z-index:10;"></div>
-
 <div class="layout">
-  <!-- LEFT COLUMN — Phone -->
+  <!-- LEFT COLUMN — Phone + all animations contained here -->
   <div class="col-left">
+    <div class="brand-moment" id="brandMoment">
+      <div class="bm-glow"></div>
+      <div class="bm-this">This is</div>
+      <div class="bm-name">Sales<span class="bm-scout">Scout</span></div>
+      <div class="bm-line"></div>
+    </div>
+    <canvas id="dataCanvas" width="1920" height="1080"></canvas>
+    <div id="badgeContainer" style="position:absolute;inset:0;pointer-events:none;z-index:8;"></div>
     <div class="phone-wrap" id="phoneWrap">
       <div class="phone-glow"></div>
       <div class="phone">
@@ -994,7 +1018,7 @@ let _ambSrc = null;
 let _ambGain = null;
 let isMuted = false;
 let _timers = [];
-const _ambVol = 0.4; // mobile ambient level
+const _ambVol = 0.4;
 
 const AUDIO_FILES = {
   send: 'audio/send.mp3', typing: 'audio/typing.mp3',
@@ -1004,34 +1028,26 @@ const AUDIO_FILES = {
   vo1: 'audio/vo-clip1.wav', vo2: 'audio/vo-clip2.wav',
   vo3: 'audio/vo-clip3.wav', vo4: 'audio/vo-clip4.wav', vo5: 'audio/vo-clip5.wav',
 };
-
 const VOLS = {
   send: 0.15, typing: 0.1, lock: 0.2, unlock: 0.2,
   pursue: 0.15, chime: 0.15,
   vo1: 0.5, vo2: 0.5, vo3: 0.5, vo4: 0.5, vo5: 0.5,
 };
 
-// Create context synchronously on user tap — MUST be in click handler
 function _initCtx() {
   if (_actx) return;
   _actx = new (window.AudioContext || window.webkitAudioContext)();
-  // Play silent buffer to unlock iOS
   const b = _actx.createBuffer(1, 1, 22050);
   const s = _actx.createBufferSource();
-  s.buffer = b;
-  s.connect(_actx.destination);
-  s.start(0);
+  s.buffer = b; s.connect(_actx.destination); s.start(0);
 }
-
-// Load all files — call after context created, non-blocking
 function _loadAll() {
   Object.entries(AUDIO_FILES).forEach(([key, url]) => {
     fetch(url).then(r => r.arrayBuffer()).then(buf => {
-      _actx.decodeAudioData(buf, decoded => { _bufs[key] = decoded; });
+      _actx.decodeAudioData(buf, d => { _bufs[key] = d; });
     }).catch(() => {});
   });
 }
-
 function playSound(key, vol) {
   if (!_actx || !_bufs[key] || isMuted) return;
   try {
@@ -1043,7 +1059,6 @@ function playSound(key, vol) {
     src.start();
   } catch(e) {}
 }
-
 function _startAmbient() {
   if (!_actx || !_bufs.ambient) return;
   try {
@@ -1056,7 +1071,6 @@ function _startAmbient() {
     _ambSrc.start();
   } catch(e) {}
 }
-
 function duckAmbient(targetVol, durationMs) {
   if (!_ambGain || !_actx) return;
   try {
@@ -1066,27 +1080,20 @@ function duckAmbient(targetVol, durationMs) {
     _ambGain.gain.linearRampToValueAtTime(targetVol, now + durationMs / 1000);
   } catch(e) {}
 }
-
 function scheduleSound(key, delayMs, vol) {
   const t = setTimeout(() => playSound(key, vol), delayMs);
   _timers.push(t);
 }
-
 function scheduleCallback(delayMs, fn) {
   const t = setTimeout(fn, delayMs);
   _timers.push(t);
 }
-
 function audioPause() {}
 function audioResume() {}
-
 function toggleMute() {
   isMuted = !isMuted;
   if (_ambGain) _ambGain.gain.value = isMuted ? 0 : _ambVol;
-  const btn = document.getElementById('muteBtn');
-  if (btn) btn.textContent = isMuted ? '\uD83D\uDD07 Sound off' : '\uD83D\uDD0A Sound on';
 }
-
 function resetAudio() {
   _timers.forEach(t => clearTimeout(t));
   _timers = [];
@@ -1095,17 +1102,11 @@ function resetAudio() {
 }
 
 function scheduleSFX() {
-  // Start ambient — retry until buffer is loaded
-  if (_bufs.ambient) {
-    _startAmbient();
-  } else {
-    const check = setInterval(() => {
-      if (_bufs.ambient) { _startAmbient(); clearInterval(check); }
-    }, 200);
-    _timers.push(check);
-  }
+  // Start ambient
+  if (_bufs.ambient) { _startAmbient(); }
+  else { const c = setInterval(() => { if (_bufs.ambient) { _startAmbient(); clearInterval(c); } }, 200); _timers.push(c); }
 
-  // "This is SalesScout" brand moment
+  // Brand moment
   scheduleCallback(20500, () => playBrandMoment());
 
   // VO clips
@@ -1115,7 +1116,7 @@ function scheduleSFX() {
   scheduleSound('vo3', 67000, VOLS.vo3);
   scheduleSound('vo5', 80700, VOLS.vo5);
 
-  // Ambient ducking (mobile-tuned: duck lower)
+  // Ambient ducking
   scheduleCallback(3500, () => duckAmbient(0.08, 800));
   scheduleCallback(25500, () => duckAmbient(_ambVol, 1200));
   scheduleCallback(26500, () => duckAmbient(0.08, 800));
@@ -1128,24 +1129,16 @@ function scheduleSFX() {
   scheduleCallback(82200, () => duckAmbient(_ambVol, 1200));
   scheduleCallback(88000, () => duckAmbient(0, 3000));
 
-  // Scene 1 SFX
+  // SFX
   scheduleSound('typing', 0);
   scheduleSound('send', 1600);
   scheduleSound('pursue', 10800);
   scheduleSound('pursue', 15200);
-
-  // Scene 2 SFX
   scheduleSound('send', 21510);
-
-  // Scene 3+4 SFX
   scheduleSound('send', 34800);
   scheduleSound('send', 45000);
-
-  // 7AM sequence SFX
   scheduleSound('lock', 53500);
   scheduleSound('unlock', 60200);
-
-  // Closing SFX
   scheduleSound('lock', 77200, 0.1);
 }
 
@@ -1175,7 +1168,7 @@ requestAnimationFrame(() => { msgBox.scrollTop = msgBox.scrollHeight; });
 
 // Intro auto-fade on page load — music starts, fades to demo after 3s
 setTimeout(() => {
-  // Ambient starts on tap via Web Audio API — skip here on mobile
+  // Ambient starts on tap via Web Audio — skip here
   // Fade out intro after 1.5 seconds
   setTimeout(() => {
     const overlay = document.getElementById('introOverlay');
@@ -1227,20 +1220,24 @@ let particles = [];
 let streamAnimFrame = null;
 let streamActive = false;
 
-// Phone center coordinates (approximate for canvas rendering)
+// Phone center coordinates relative to col-left
 const phoneCenter = { x: 0, y: 0 };
+const colLeft = document.querySelector('.col-left');
 function updatePhoneCenter() {
   const pw = document.getElementById('phoneWrap');
-  if (!pw) return;
-  const r = pw.getBoundingClientRect();
-  phoneCenter.x = r.left + r.width / 2;
-  phoneCenter.y = r.top + r.height / 2;
+  if (!pw || !colLeft) return;
+  const pr = pw.getBoundingClientRect();
+  const cr = colLeft.getBoundingClientRect();
+  phoneCenter.x = (pr.left - cr.left) + pr.width / 2;
+  phoneCenter.y = (pr.top - cr.top) + pr.height / 2;
 }
 
-// Resize canvas to window
+// Resize canvas to col-left dimensions
 function resizeCanvas() {
-  dataCanvas.width = window.innerWidth;
-  dataCanvas.height = window.innerHeight;
+  if (!colLeft) return;
+  const cr = colLeft.getBoundingClientRect();
+  dataCanvas.width = cr.width;
+  dataCanvas.height = cr.height;
   updatePhoneCenter();
 }
 resizeCanvas();
@@ -1372,7 +1369,7 @@ function startDataStreams(labels) {
     badge.innerHTML = `<span class="badge-dot"></span>${label}`;
     badge.style.left = (phoneCenter.x + pos.x) + 'px';
     badge.style.top = (phoneCenter.y + pos.y) + 'px';
-    badge.style.transform = 'translate(-50%, -50%) scale(0.9)';
+    badge.style.transform = 'translate(-50%, -50%)';
     badgeContainer.appendChild(badge);
     // Stagger appearance
     setTimeout(() => badge.classList.add('show'), 300 + i * 200);
@@ -1743,7 +1740,7 @@ async function runDemo() {
   running = true;
   startBtn.disabled = true;
 
-  // Init Web Audio on tap — MUST be synchronous in click handler
+  // Init Web Audio on tap — MUST be synchronous
   _initCtx();
   _loadAll();
 
