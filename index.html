@@ -1114,6 +1114,9 @@ async function runDemo() {
   running = true;
   startBtn.disabled = true;
 
+  // Init audio IMMEDIATELY on user tap — before any await/sleep
+  await initAudio();
+
   resetAll();
   debugStartTimer();
   msgBox.scrollTop = msgBox.scrollHeight;
