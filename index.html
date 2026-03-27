@@ -734,12 +734,22 @@ const VOLUMES = {
   vo1: 0.7, vo2: 0.7, vo3: 0.7, vo4: 0.7, vo5: 0.7,
 };
 
-async function initAudio() {
+// Create AudioContext synchronously — MUST happen in click handler, no await before this
+function createAudioContext() {
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  // Resume if suspended (iOS requirement)
+  // Play a silent buffer to fully unlock on iOS
+  const silent = audioCtx.createBuffer(1, 1, 22050);
+  const src = audioCtx.createBufferSource();
+  src.buffer = silent;
+  src.connect(audioCtx.destination);
+  src.start(0);
+}
+
+// Load audio files — can be called async after context is created
+async function loadAudioFiles() {
+  if (!audioCtx) return;
   if (audioCtx.state === 'suspended') await audioCtx.resume();
-  // Load all files in parallel
   await Promise.all(Object.entries(AUDIO_FILES).map(async ([key, url]) => {
     try {
       const res = await fetch(url);
@@ -1114,8 +1124,10 @@ async function runDemo() {
   running = true;
   startBtn.disabled = true;
 
-  // Init audio IMMEDIATELY on user tap — before any await/sleep
-  await initAudio();
+  // Create AudioContext SYNCHRONOUSLY on tap — no await before this
+  createAudioContext();
+  // Then load files async
+  await loadAudioFiles();
 
   resetAll();
   debugStartTimer();
