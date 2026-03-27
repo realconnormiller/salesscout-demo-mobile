@@ -1124,10 +1124,10 @@ async function runDemo() {
   running = true;
   startBtn.disabled = true;
 
-  // Create AudioContext SYNCHRONOUSLY on tap — no await before this
+  // Create AudioContext SYNCHRONOUSLY on tap
   createAudioContext();
-  // Then load files async
-  await loadAudioFiles();
+  // Load files in background — don't block demo
+  loadAudioFiles();
 
   resetAll();
   debugStartTimer();
