@@ -1748,9 +1748,13 @@ async function runDemo() {
   resetPipelineCounter();
 
   msgBox.scrollTop = msgBox.scrollHeight;
-  await sleep(800);
 
-  // Start VO + SFX timeline (ambient already playing)
+  // Wait for critical audio files to load (VO1 + ambient)
+  const loadStart = Date.now();
+  while (!_bufs.vo1 && Date.now() - loadStart < 5000) { await sleep(100); }
+  await sleep(300);
+
+  // Start VO + SFX timeline
   scheduleSFX();
 
   for (let i = 0; i < CONFIG.scenes.length; i++) {
