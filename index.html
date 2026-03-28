@@ -1109,12 +1109,8 @@ function scheduleSFX() {
   // Brand moment
   scheduleCallback(20500, () => playBrandMoment());
 
-  // VO clips
+  // VO clips — vo1 scheduled, rest triggered inline by engine
   scheduleSound('vo1', 3500, VOLS.vo1);
-  scheduleSound('vo2', 26500, VOLS.vo2);
-  scheduleSound('vo4', 52000, VOLS.vo4);
-  scheduleSound('vo3', 67000, VOLS.vo3);
-  scheduleSound('vo5', 80700, VOLS.vo5);
 
   // Ambient ducking
   scheduleCallback(3500, () => duckAmbient(0.08, 800));
@@ -1688,6 +1684,7 @@ async function playSevenAm() {
   await sleep(500);
   addTimestamp('Today 7:00 AM');
   await sleep(500);
+  playSound('vo3', VOLS.vo3);  // VO3 starts with overnight bubbles
   startDataStreams(['Ran while you slept', '4 open windows found', 'First-mover advantage']);
   for (let i = 0; i < sa.bubbles.length; i++) {
     addBubble('assistant', sa.bubbles[i]);
@@ -1754,12 +1751,17 @@ async function runDemo() {
   scheduleSFX();
 
   for (let i = 0; i < CONFIG.scenes.length; i++) {
+    // Trigger VO at scene boundaries
+    if (i === 1) playSound('vo2', VOLS.vo2);  // Scene 2: Outreach
     await playScene(CONFIG.scenes[i]);
     const isLast = (i === CONFIG.scenes.length - 1);
     await sleep(isLast ? CONFIG.timing.preSevenAmPause : CONFIG.timing.sceneGap);
   }
 
+  playSound('vo4', VOLS.vo4);  // 7AM sequence
   await playSevenAm();
+
+  playSound('vo5', VOLS.vo5);  // Closing
   await playClosing();
 
   running = false;
