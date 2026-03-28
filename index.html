@@ -1129,17 +1129,7 @@ function scheduleSFX() {
   scheduleCallback(82200, () => duckAmbient(_ambVol, 1200));
   scheduleCallback(88000, () => duckAmbient(0, 3000));
 
-  // SFX
-  scheduleSound('typing', 0);
-  scheduleSound('send', 1600);
-  scheduleSound('pursue', 10800);
-  scheduleSound('pursue', 15200);
-  scheduleSound('send', 21510);
-  scheduleSound('send', 34800);
-  scheduleSound('send', 45000);
-  scheduleSound('lock', 53500);
-  scheduleSound('unlock', 60200);
-  scheduleSound('lock', 77200, 0.1);
+  // SFX — triggered inline by engine events, not scheduled
 }
 
 // =============================================================
@@ -1576,11 +1566,13 @@ async function typeUserMessage(text) {
 
 async function playScene(scene) {
   const t = CONFIG.timing;
-  cursorOn(); // Blink cursor between scenes
+  cursorOn();
   if (scene.user) {
-    cursorOff(); // Stop cursor when typing starts
+    cursorOff();
     await sleep(t.userPause);
+    playSound('typing');  // typing sound when user starts typing
     await typeUserMessage(scene.user);
+    playSound('send');    // send sound when message completes
     await sleep(200);
     if (scene.readReceipt) {
       const rr = addReadReceipt();
@@ -1616,8 +1608,9 @@ async function playScene(scene) {
   let responseIdx = 0;
   for (const r of scene.responses) {
     const el = addBubble('assistant', r.text, r.style || '');
-    // Pulse on PURSUE NOW
+    // Pulse + sound on PURSUE NOW
     if (r.style === 'decision') {
+      playSound('pursue');
       setTimeout(() => el.classList.add('pulse'), 300);
     }
     // Pipeline counter on "Both added to pipeline" (Scene 4)
@@ -1652,6 +1645,7 @@ async function playSevenAm() {
   lockNotif.classList.remove('show', 'tap', 'dismiss');
   lockBg.classList.remove('white', 'fade-out');
   lockOverlay.classList.add('show');
+  playSound('lock');  // phone lock sound
   await sleep(800);
 
   // Hold black (600ms)
@@ -1678,6 +1672,7 @@ async function playSevenAm() {
   await sleep(250);
   lockNotif.classList.add('dismiss');
   await sleep(300);
+  playSound('unlock');  // phone unlock sound
 
   // Step 7: Luma fade down — white → chat
   // Update clock, then fade the white bg out revealing chat beneath
@@ -1703,6 +1698,7 @@ async function playSevenAm() {
   await sleep(t.silenceAfterBriefs);
 
   phoneWrap.classList.add('fade-out');
+  playSound('lock', 0.1);  // subtle lock on closing fade
   await sleep(t.phoneFadeOut);
   await sleep(100);
 }
